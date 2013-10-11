@@ -1,114 +1,144 @@
-$(document).ready(function() {
+window.app = {};
 
-    $('#additem').click(function(e){
-        addItem();
+$(window).on("apiReady", function () {
+
+    $('#additem').click(function (e) {
+        createRecord();
     });
 
-    getItems();
+    checkSession();
 });
 
-function getItems() {
+// session
 
-    $.ajax({
-        dataType:'json',
-        url:location.protocol + '//' + location.host + '/rest/dfmongohq/todo',
-        data:'app_name=todomongo',
-        cache:false,
-        success:function (response) {
-            buildItemList(response);
-        },
-        error:function (response) {
-            alert("There was an error retrieving the to do list items.");
-        }
+function checkSession() {
+
+    // check for existing session, relevant when code is hosted on the dsp
+    window.df.apis.user.getSession({"body":{}}, function (response) {
+        // existing session found, assign session token
+        // to be used for the session duration
+        var session = new ApiKeyAuthorization("X-Dreamfactory-Session-Token",
+            response.session_id, 'header');
+        window.authorizations.add("X-DreamFactory-Session-Token", session);
+        runApp();
+    }, function (response) {
+        // no valid session, try to log in
+        login();
     });
 }
 
-function addItem() {
+function login() {
+
+    // your app would present a login form here to get email and password
+    var body = {
+        "email":"_your_dsp_email_",
+        "password":"_your_dsp_password_"
+    };
+    window.df.apis.user.login({"body":body}, function (response) {
+        // assign session token to be used for the session duration
+        var session = new ApiKeyAuthorization("X-Dreamfactory-Session-Token",
+            response.session_id, 'header');
+        window.authorizations.add("X-DreamFactory-Session-Token", session);
+        runApp();
+    }, function (response) {
+        alert(getErrorString(response));
+    });
+}
+
+// main app entry point
+
+function runApp() {
+
+    // your app starts here
+    getRecords();
+}
+
+// CRUD
+
+function getRecords() {
+
+    window.df.apis.dfmongohq.getRecords({"table_name":"todo"}, function (response) {
+        buildItemList(response);
+    }, function (response) {
+        alert(getErrorString(response));
+    });
+}
+
+function createRecord() {
 
     var name = $('#itemname').val();
     if (name === '') return;
-    var item = {"record":[{"name":name,"complete":false}]};
-    $.ajax({
-        dataType:'json',
-        type : "POST",
-        url:location.protocol + '//' + location.host + '/rest/dfmongohq/todo?app_name=todomongo',
-        data:JSON.stringify(item),
-        cache:false,
-        processData: false,
-        success:function (response) {
-            $('#itemname').val('');
-            getItems();
-        },
-        error: function(response) {
-            $('#itemname').val('');
-            alert("There was an error creating the list item.");
-        }
+    var item = {"record":[
+        {"name":name, "complete":false}
+    ]};
+    df.apis.dfmongohq.createRecords({"table_name":"todo", "body":item}, function (response) {
+        $('#itemname').val('');
+        getRecords();
+    }, function (response) {
+        alert(getErrorString(response));
     });
 }
 
-function updateItem(id, complete) {
+function updateRecord(id, complete) {
 
-    var item = {"record":[{"_id":id,"complete":complete}]};
-    $.ajax({
-        dataType:'json',
-        type : "PATCH",
-        url:location.protocol + '//' + location.host + '/rest/dfmongohq/todo?app_name=todomongo',
-        data:JSON.stringify(item),
-        cache:false,
-        processData: false,
-        success:function (response) {
-            getItems();
-        },
-        error: function(response) {
-            alert("There was an error updating the list item.");
-        }
+    var item = {"record":[
+        {"_id":id, "complete":complete}
+    ]};
+    df.apis.dfmongohq.mergeRecords({"table_name":"todo", "body":item}, function (response) {
+        getRecords();
+    }, function (response) {
+        alert(getErrorString(response));
     });
 }
 
-function deleteItem(id) {
+function deleteRecord(id) {
 
-    $.ajax({
-        dataType:'json',
-        type : "DELETE",
-        url:location.protocol + '//' + location.host + '/rest/dfmongohq/todo/' + id + '?app_name=todomongo',
-        cache:false,
-        processData: false,
-        success:function (response) {
-            getItems();
-        },
-        error: function(response) {
-            alert("There was an error deleting the list item.");
-        }
+    df.apis.dfmongohq.deleteRecords({"table_name":"todo", "ids":id}, function (response) {
+        getRecords();
+    }, function (response) {
+        alert(getErrorString(response));
     });
 }
+
+// ui
 
 function buildItemList(json) {
 
     var html = '';
-    if (json.record && json.record.length > 0) {
-        html += '<table class="table table-hover table-striped table-bordered todolist">';
-        for (var i in json.record) {
-            var name = json.record[i].name;
-            var id = json.record[i]._id;
+    if (json.record) {
+        json.record.forEach(function (entry) {
+            var name = entry.name;
+            var id = entry._id;
             html += '<tr>';
             html += '<td><a><i class="icon icon-minus-sign" data-id="' + id + '"></i></a></td>';
-            if (json.record[i].complete === true) {
+            if (entry.complete === true) {
                 html += '<td style="width:100%" class="item strike" data-id="' + id + '">' + name + '</td>';
             } else {
                 html += '<td style="width:100%" class="item" data-id="' + id + '">' + name + '</td>';
             }
             html += '</tr>';
-        }
-        html += '</table>';
+        });
     }
-    $('#list-container').html(html);
-    $('#list-container .item').click(function(e) {
+    $('table').html(html);
+    $('#list-container .item').click(function (e) {
         var id = $(this).data('id');
         var complete = $(this).hasClass('strike');
-        updateItem(id, !complete);
+        updateRecord(id, !complete);
     });
-    $('#list-container i').click(function(e) {
+    $('#list-container i').click(function (e) {
         var id = $(this).data('id');
-        deleteItem(id);
+        deleteRecord(id);
     });
+}
+
+// error utils
+
+function getErrorString(response) {
+
+    var msg = "An error occurred, but the server provided no additional information.";
+    if (response.content && response.content.data && response.content.data.error) {
+        msg = response.content.data.error[0].message;
+    }
+    msg = msg.replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&').replace(/&apos;/g, '\'');
+    return msg;
 }
