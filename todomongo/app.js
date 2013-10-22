@@ -1,10 +1,23 @@
 window.app = {};
 
-$(window).on("apiReady", function () {
+$(document).ready(function() {
 
     $('#additem').click(function (e) {
         createRecord();
     });
+
+    function checkEnterKey(e, action) {
+        if (e.keyCode == 13) {
+            action();
+        }
+    }
+
+    $('#loginDialog').find('input').keydown(function(e) {
+        checkEnterKey(e, logIn);
+    });
+});
+
+$(window).on("apiReady", function () {
 
     checkSession();
 });
@@ -13,8 +26,10 @@ $(window).on("apiReady", function () {
 
 function checkSession() {
 
+    $("#loading").show();
     // check for existing session, relevant when code is hosted on the dsp
     window.df.apis.user.getSession({"body":{}}, function (response) {
+        $("#loading").hide();
         // existing session found, assign session token
         // to be used for the session duration
         var session = new ApiKeyAuthorization("X-Dreamfactory-Session-Token",
@@ -22,26 +37,9 @@ function checkSession() {
         window.authorizations.add("X-DreamFactory-Session-Token", session);
         runApp();
     }, function (response) {
+        $("#loading").hide();
         // no valid session, try to log in
-        login();
-    });
-}
-
-function login() {
-
-    // your app would present a login form here to get email and password
-    var body = {
-        "email":"_your_dsp_email_",
-        "password":"_your_dsp_password_"
-    };
-    window.df.apis.user.login({"body":body}, function (response) {
-        // assign session token to be used for the session duration
-        var session = new ApiKeyAuthorization("X-Dreamfactory-Session-Token",
-            response.session_id, 'header');
-        window.authorizations.add("X-DreamFactory-Session-Token", session);
-        runApp();
-    }, function (response) {
-        alert(getErrorString(response));
+        doLogInDialog();
     });
 }
 
@@ -59,9 +57,8 @@ function getRecords() {
 
     window.df.apis.dfmongohq.getRecords({"table_name":"todo"}, function (response) {
         buildItemList(response);
-    }, function (response) {
-        alert(getErrorString(response));
-    });
+    }, crudError
+    );
 }
 
 function createRecord() {
@@ -74,9 +71,8 @@ function createRecord() {
     df.apis.dfmongohq.createRecords({"table_name":"todo", "body":item}, function (response) {
         $('#itemname').val('');
         getRecords();
-    }, function (response) {
-        alert(getErrorString(response));
-    });
+    }, crudError
+    );
 }
 
 function updateRecord(id, complete) {
@@ -86,18 +82,16 @@ function updateRecord(id, complete) {
     ]};
     df.apis.dfmongohq.mergeRecords({"table_name":"todo", "body":item}, function (response) {
         getRecords();
-    }, function (response) {
-        alert(getErrorString(response));
-    });
+    }, crudError
+    );
 }
 
 function deleteRecord(id) {
 
     df.apis.dfmongohq.deleteRecords({"table_name":"todo", "ids":id}, function (response) {
         getRecords();
-    }, function (response) {
-        alert(getErrorString(response));
-    });
+    }, crudError
+    );
 }
 
 // ui
@@ -141,4 +135,58 @@ function getErrorString(response) {
     }
     msg = msg.replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&').replace(/&apos;/g, '\'');
     return msg;
+}
+
+function crudError(response) {
+
+    if (response.status == 401 || response.status == 403) {
+        doLogInDialog();
+    } else {
+        alert(getErrorString(response));
+    }
+}
+
+// login dialog
+
+function clearLogIn() {
+
+    var $_dlg = $('#loginDialog');
+    $('input', $_dlg).val('');
+}
+
+function doLogInDialog() {
+
+    var _message = 'Please enter your User Email and Password below to sign in.';
+    $('#loginErrorMessage').removeClass('alert-error').empty().html(_message);
+    clearLogIn();
+    $("#loginDialog").modal('show').on('shown', function() {
+        $('#UserEmail').focus();
+    });
+}
+
+function logIn() {
+
+    var email = $('#UserEmail').val();
+    var pw = $('#Password').val();
+    if (!email || !pw) {
+        $("#loginErrorMessage").addClass('alert-error').html('You must enter your email address and password to continue.');
+        return;
+    }
+    var body = {
+        "email":email,
+        "password":pw
+    };
+    $("#loading").show();
+    window.df.apis.user.login({"body":body}, function (response) {
+        // assign session token to be used for the session duration
+        var session = new ApiKeyAuthorization("X-Dreamfactory-Session-Token",
+            response.session_id, 'header');
+        window.authorizations.add("X-DreamFactory-Session-Token", session);
+        $("#loginDialog").modal('hide');
+        $("#loading").hide();
+        runApp();
+    }, function (response) {
+        $("#loading").hide();
+        $("#loginErrorMessage").addClass('alert-error').html(getErrorString(response));
+    });
 }
