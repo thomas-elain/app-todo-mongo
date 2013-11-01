@@ -80,7 +80,7 @@ function updateRecord(id, complete) {
     var item = {"record":[
         {"_id":id, "complete":complete}
     ]};
-    df.apis.dfmongohq.mergeRecords({"table_name":"todo", "body":item}, function (response) {
+    df.apis.dfmongohq.updateRecords({"table_name":"todo", "body":item}, function (response) {
         getRecords();
     }, crudError
     );
