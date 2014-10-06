@@ -1,1 +1,12 @@
-{"service":[{"api_name":"schema","table":[{"name":"todo","label":"Todo","plural":"Todos","primary_key":"id","name_field":"","field":[{"name":"id","label":"Id","type":"id","db_type":"int(11)","length":11,"precision":11,"scale":0,"default":null,"required":false,"allow_null":false,"fixed_length":false,"supports_multibyte":false,"auto_increment":true,"is_primary_key":true,"is_foreign_key":false,"ref_table":"","ref_fields":"","validation":null,"values":[]},{"name":"name","label":"Name","type":"string","db_type":"varchar(80)","length":80,"precision":80,"scale":0,"default":null,"required":true,"allow_null":false,"fixed_length":false,"supports_multibyte":false,"auto_increment":false,"is_primary_key":false,"is_foreign_key":false,"ref_table":"","ref_fields":"","validation":null,"values":[]},{"name":"complete","label":"Complete","type":"boolean","db_type":"tinyint(1)","length":1,"precision":1,"scale":0,"default":null,"required":false,"allow_null":true,"fixed_length":false,"supports_multibyte":false,"auto_increment":false,"is_primary_key":false,"is_foreign_key":false,"ref_table":"","ref_fields":"","validation":null,"values":[]}],"related":[]}]}]}
+{
+    "service": [
+        {
+            "api_name": "dfmongohq",
+            "table": [
+                {
+                    "name": "todo"
+                }
+            ]
+        }
+    ]
+}

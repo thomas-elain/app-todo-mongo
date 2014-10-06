@@ -1,1 +1,21 @@
-[{"name":"dfmongohq","api_name":"dfmongohq","description":"","is_active":true,"type":"NoSQL DB","is_system":false,"storage_name":null,"storage_type":"mongohq","credentials":{"dsn":"mongodb:\/\/widmore.mongohq.com:10000\/DreamFactory","user":"todd","pwd":"race172"},"native_format":null,"base_url":null,"parameters":[],"headers":[]}]
+[
+    {
+        "name": "dfmongohq",
+        "api_name": "dfmongohq",
+        "description": "",
+        "is_active": true,
+        "type": "NoSQL DB",
+        "is_system": false,
+        "storage_name": null,
+        "storage_type": "mongodb",
+        "credentials": {
+            "dsn": "mongodb://candidate.21.mongolayer.com:10436/df",
+            "user": "todd",
+            "pwd": "race172"
+        },
+        "native_format": null,
+        "base_url": null,
+        "parameters": [],
+        "headers": []
+    }
+]
